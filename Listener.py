@@ -18,20 +18,34 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTIO
 CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
 OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 '''
-import datetime, sys
+import datetime, sys, re
 
 from Yowsup.connectionmanager import YowsupConnectionManager
-
+from Config import Config,Constants
+from DBInterface import DBI
+import MySQLdb
 class Listener:
 	
 	def __init__(self, coreRef):
+		print "initing Sender"
 		self.core = coreRef
 		self.core.signalsInterface.registerListener("message_received", self.onMessageReceived)	
+		#self.listenerDBI = DBI()
 	
 	def onMessageReceived(self, messageId, jid, messageContent, timestamp, wantsReceipt, pushName, isBroadCast):
-		sender = jid
-		self.core.dbiCursor.execute("INSERT INTO inbox (messageId, recipient, sender, message, tstamp, seen ) VALUES( %s, %s, %s, %s, %s )", 
-			( messageId, self.session.phone, sender, messageContent, timestamp, 0))
+		print "received message: %s,%s, %s"%(messageId, jid, messageContent)
+		sender = re.match('([0-9]*)@s\.whatsapp\.net',jid).group(1)
 		
-		if wantsReceipt and Config.SEND_RECEIPTS:
+		try:
+			dbiCursor = self.core.dbi.getCursor()#self.listenerDBI.getCursor()
+			#self.core.dbiCursor.execute("INSERT INTO inbox (messageId, recipient, sender, message, tstamp, seen ) VALUES( %s, %s, %s, %s, %s, %s )", ( messageId, self.core.session.phone, sender, messageContent, timestamp, 0))
+			dbiCursor.execute("REPLACE INTO inbox (messageId, recipient, sender, message, tstamp, seen ) VALUES( %s, %s, %s, %s, %s, %s )", ( messageId, self.core.session.phone, sender, messageContent, timestamp, 0))
+			self.core.dbi.commit()#self.listenerDBI.commit()
+		except MySQLdb.Error, e:
+			print "Exception onMessageReceived: %s"%e
+		finally:
+			self.core.dbi.done()#self.listenerDBI.done()
+		
+		if wantsReceipt and Config.sendReceipts:
 			self.methodsInterface.call("message_ack", (jid, messageId))
+	

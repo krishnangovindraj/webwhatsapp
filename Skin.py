@@ -1,11 +1,10 @@
-
 class Skin:
 	@staticmethod
 	def completeHTML(body):
 		html = """
 		<html>
 			<head>
-				<link rel="" href="">
+				<link rel="stylesheet" type="text/css" href="/static?file=global.css" />
 			</head>
 			<body>
 				%s
@@ -17,43 +16,72 @@ class Skin:
 	
 	@staticmethod
 	def inbox(convos):
+		print "Skin.inbox:"
 		body = "<h2>Inbox</h2>"
 		for convo in convos:
-			
-			if convo.isunread:
+			print convo
+			if convo["isunread"]:
 				unreadstr = "isunread" 
 			else:
 				unreadstr = ""
 				
 			body+="""<div class="inboxconvo %s">
 				<a href="/chat?with=%s">%s </a>
-				</div>"""% unreadstr, convo.sender, convo.sender
+				</div>"""% (unreadstr, convo["sender"], convo["sender"])
 		
 		
 		return Skin.completeHTML(body)
 	
 	@staticmethod
-	def chat(otherPerson, messages):
-		body = "Chat with %s" %otherPerson
+	def chat(otherPerson, sent,rec):
+		body = "<h2>Chat with %s</h2>" %otherPerson
+		
+		body+="<div class='chat_container'>"
+		messages = Skin.chat_merge(sent,rec)
 		for message in messages:
-			if  message.sender==otherPerson:
-				cssclass = "chat_received"
+			if  int(message["sender"])==int(otherPerson):
+				cssclass = "chat received"
 				
-				if message.seen==0:
+				if message["seen"]==0:
 					cssclass+=" unread"
 			else:
-				cssclass = "chat_sent"
+				cssclass = "chat sent"
 			
 			
-			timestr = message.tstamp
+			timestr = message["tstamp"]
 			body+="""
 			<div class="%s">
-				<span class="timestr">%s</span>
+				<span class="timestamp">%s@%s</span>
 				%s
-			</div>"""% cssclass,timestr,messages.message
+			</div>"""% (cssclass, message["sender"], timestr,message["message"])
 		
 		body+=Skin.sendForm(otherPerson)
+		body+="""</div>
+		<!---End chat_message div--->
+		"""
 		return Skin.completeHTML(body)
+	
+	@staticmethod
+	def chat_merge(sent,rec):
+		convo = []
+		
+		s=len(sent)-1
+		r=len(rec)-1
+		while not (r==-1 and s==-1):
+			print "\n r,s: %s,%s"%(r,s)
+			if not s==-1 and (r==-1 or sent[s]["tstamp"] < rec[r]["tstamp"]):
+				convo.append(sent[s])
+				s=s-1
+			else:
+				if s==-1 or sent[s]["tstamp"] >= rec[r]["tstamp"]:
+					convo.append(rec[r])
+					r=r-1
+				else:
+					print "requestHandler.chat: Merge sequence messed up"
+					break
+			
+		
+		return convo
 	
 	@staticmethod
 	def sendForm(recipient):
@@ -66,7 +94,8 @@ class Skin:
 			</form>
 		</div>
 		"""% recipient
-		return Skin.completeHTML(form)
+		return form
+		#return Skin.completeHTML(form)
 
 	@staticmethod
 	def loginForm():
@@ -84,4 +113,15 @@ class Skin:
 	@staticmethod
 	def index():
 		body = "Hello, I am the index"
-		return Skin.completeHTML()
+		return Skin.completeHTML(body)
+	
+	@staticmethod
+	def confirmWrapUpForm():
+		form = """
+		<form action="" method="post">
+			<input type="hidden" name="confirmWrapUp" value="true"/>
+			<input type="submit" value="Confirm wrap up"/>
+		</form>
+		"""
+		return Skin.completeHTML(form)
+	

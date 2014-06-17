@@ -1,0 +1,26 @@
+body{
+	background:#abc;
+	padding:5px;
+	
+}
+.chat {
+	width:90%;
+	margin-top:5px;
+	padding:10px;
+}
+.received{
+	float:left;
+	border: 2px #33d;
+	background: #99f;
+	
+}
+.sent{
+	float:right;
+	border:2px #d33;
+	background: #f99;
+}
+
+.timestamp{
+	display:block;
+	font-style:italic;
+}

@@ -2,8 +2,14 @@
 class Config:
 		keepAlive = True
 		sendReceipts = False
+		waitForReceipt = False
 		
-		session_opts = {'session.type': 'file', 'session.cookie_expires': True,}
+		session_opts = {'session.type': 'file', 'session.cookie_expires': True,'session.file_dir': 'beaker\\file_dir','session.data_dir': 'beaker\\data_dir'}
+		
+		#CONNECTION
+		conRetry_interval= 10 #Retry every 10 seconds
+		conRetry_maxRetry = 12 #Retry 12 times
+
 '''
 	def __init__():
 		#Nothing
@@ -32,7 +38,8 @@ class Constants:
 	
 	
 	#INSTANCESTATUS	(Notes the status of the process in the databases. Mostly to keep track of instances
-	INSTANCESTATUS_RUNNING = 0
+	INSTANCESTATUS_INITED = 0
+	INSTANCESTATUS_RUNNING = 1
 	INSTANCESTATUS_WRAPPEDUP = 2
 	
 	
