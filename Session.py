@@ -3,6 +3,7 @@
 '''
 from Config import Config,Constants
 from WWMException import WWMException
+from DBInterface import DBI, BlockingDBICursor
 import base64
 
 class Session:
@@ -48,22 +49,22 @@ class Session:
 		self.updateAuthStatus(Constants.AUTHSTATUS_IDLE,false)
 	
 	def onDisconnected(self, reason):
+		print "Session.onDisconnected called"
 		print("Disconnected (%s) because %s" %(self.phone, reason) )
-		self.updateAuthStatus(Constants.AUTHSTATUS_IDLE)
+		self.authStatus = Constants.AUTHSTATUS_IDLE
+		#self.updateAuthStatus(Constants.AUTHSTATUS_IDLE)
 
 	def updateAuthStatus(self, status,updateDB=True):
 		self.authStatus = status
 		return #Let's not mess with the DB now
 		if updateDB:
-			dbiCursor = self.core.dbi.getCursor()
-			dbiCursor.execute( "UPDATE pythonInstances SET authStatus=%s WHERE phone=%s", (self.authStatus, self.phone))
-			self.core.dbi.done()
+			with BlockingDBICursor(self.core.dbi) as dbiCursor:
+				dbiCursor.execute( "UPDATE pythonInstances SET authStatus=%s WHERE phone=%s", (self.authStatus, self.phone))
 
 	def getAuthData(self):
-		dbiCursor = self.core.dbi.getCursor()
-		dbiCursor.execute("SELECT  phone, AES_DECRYPT(whatsapp_pass, %s) as password FROM users WHERE phone=%s ", (self.decryptKey, self.phone))
-		rowcount = dbiCursor.rowcount
-		self.core.dbi.done()
+		with BlockingDBICursor(self.core.dbi) as dbiCursor:
+			dbiCursor.execute("SELECT  phone, AES_DECRYPT(whatsapp_pass, %s) as password FROM users WHERE phone=%s ", (self.decryptKey, self.phone))
+			rowcount = dbiCursor.rowcount
 		
 		if rowcount==0 :
 			raise WWMException("Authdata could not be loaded. Rowcount=0")

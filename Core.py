@@ -7,7 +7,8 @@ from WWMException import WWMException
 from Session import Session
 from Sender import Sender
 from Listener import Listener
-from DBInterface import DBI
+from DBInterface import DBI, BlockingDBICursor
+from CallbackDBI import CallbackDBI
 
 import MySQLdb,time, os, hashlib
 class WWMCore:
@@ -27,7 +28,9 @@ class WWMCore:
 		self.httpRequestHandler = None
 		self.instanceId = None
 		self.status = Constants.INSTANCESTATUS_INITED
-		self.dbi = DBI() #Make an instance since it's a core part of the webapp. It'll control itself
+		
+		self.dbi = DBI() #Use this for HTTP requests only. For every other case, Go ahead and create a different connection for now
+		self.callbackDBI = CallbackDBI()	#Extra care for preventing interference
 		#self.dbiCursor = None
 		self.yowsupStarted = 0
 	
@@ -70,14 +73,15 @@ class WWMCore:
 	#This method is called from session
 	def initSession(self, phone, AESKey):
 		print "Core.initSession called"
-		if self.yowsupStarted==0 and (self.session == None or self.session.authStatus == Constants.AUTHSTATUS_IDLE):
+		if self.session == None or self.session.authStatus == Constants.AUTHSTATUS_IDLE:	#self.yowsupStarted==0 and 
 			self.yowsupStarted = 1
-			if self.session == None:	
+			if self.session == None:
 				self.session = Session(self, phone, AESKey)
 				self.session.getAuthData()
 				self.signalsInterface.registerListener("disconnected", self.onDisconnected) 
 			self.session.login()
-			
+		else:
+			print "\nPretty sure yowsup is already started."
 	
 	def authCallback(self,isSuccess):	#Called manually from Session
 		if isSuccess:
@@ -92,7 +96,7 @@ class WWMCore:
 			self.yowsupStarted= 0
 	
 	def onDisconnected(self, reason):
-		
+		print "Core.onDisconnected called"
 		
 		if self.status==Constants.INSTANCESTATUS_WRAPPEDUP:
 			print "Core.onDisconnected: Disconnected and wrapping up"
@@ -100,7 +104,8 @@ class WWMCore:
 		
 		
 		self.yowsupStarted = 0
-		self.session.updateAuthStatus(Constants.AUTHSTATUS_IDLE)
+		self.session.authStatus = Constants.AUTHSTATUS_IDLE
+		#self.session.updateAuthStatus(Constants.AUTHSTATUS_IDLE)
 		
 		
 		if self.yowsupRanOnce==0:
@@ -133,7 +138,7 @@ class WWMCore:
 		#Create a dictionary and return it
 		status = {}
 		
-		status["Core"] = [("yowsupStarted", self.yowsupStarted)]
+		status["Core"] = [("yowsupStarted", self.yowsupStarted), ("instanceStatus", self.status)]
 		
 		if self.session==None:
 			status["Session"]=[("inited","No")]
@@ -150,10 +155,8 @@ class WWMCore:
 		#Write some code to wrap up
 		self.status = Constants.INSTANCESTATUS_WRAPPEDUP
 		
-		dbiCursor = self.dbi.getCursor()
-		dbiCursor.execute("UPDATE pythonInstances  set status=%s WHERE instanceId=%s ", (self.status, self.instanceId))
-		self.dbi.commit()
-		self.dbi.done()
+		with BlockingDBICursor(self.dbi) as dbiCursor:
+			dbiCursor.execute("UPDATE pythonInstances  set status=%s WHERE instanceId=%s ", (self.status, self.instanceId))
 		
 		self.connectionManager.disconnect(reason)
 		self.yowsupStarted = 0

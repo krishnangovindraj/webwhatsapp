@@ -37,14 +37,10 @@ class Listener:
 		sender = re.match('([0-9]*)@s\.whatsapp\.net',jid).group(1)
 		
 		try:
-			dbiCursor = self.core.dbi.getCursor()#self.listenerDBI.getCursor()
-			#self.core.dbiCursor.execute("INSERT INTO inbox (messageId, recipient, sender, message, tstamp, seen ) VALUES( %s, %s, %s, %s, %s, %s )", ( messageId, self.core.session.phone, sender, messageContent, timestamp, 0))
-			dbiCursor.execute("REPLACE INTO inbox (messageId, recipient, sender, message, tstamp, seen ) VALUES( %s, %s, %s, %s, %s, %s )", ( messageId, self.core.session.phone, sender, messageContent, timestamp, 0))
-			self.core.dbi.commit()#self.listenerDBI.commit()
+			#oh the satisfaction of writing one line to query!
+			self.core.callbackDBI.execute("REPLACE INTO inbox (messageId, recipient, sender, message, tstamp, seen ) VALUES( %s, %s, %s, %s, %s, %s )", ( messageId, self.core.session.phone, sender, messageContent, timestamp, 0))
 		except MySQLdb.Error, e:
 			print "Exception onMessageReceived: %s"%e
-		finally:
-			self.core.dbi.done()#self.listenerDBI.done()
 		
 		if wantsReceipt and Config.sendReceipts:
 			self.methodsInterface.call("message_ack", (jid, messageId))

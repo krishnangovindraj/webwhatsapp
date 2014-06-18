@@ -2,18 +2,43 @@ from wsgiref.simple_server import make_server
 from RequestHandler import RequestHandler
 from beaker.middleware import SessionMiddleware
 from Config import Config
-import threading
+import threading,os
 
-requestHandler = RequestHandler()
+try:
+	#requestHandler = RequestHandler()
 
-#Enable beaker sessions
-requestHandler.requestHandler = SessionMiddleware(requestHandler.requestHandler, Config.session_opts)
+	#Enable beaker sessions
+	#RequestHandler= SessionMiddleware(RequestHandler, Config.session_opts)
+	#RequestHandler.__init__ = SessionMiddleware(RequestHandler.__init__, Config.session_opts)
 
-#Make server
-httpd = make_server('',8000,requestHandler.requestHandler)
+	RequestHandler.handleNewRequest = SessionMiddleware(RequestHandler.handleNewRequest, Config.session_opts)
+	
 
-requestHandler.setShutdownThread( httpd, threading.Thread(target=requestHandler.shutdown) )
-print "Serving on port 8000"
+	
+	#Make a file to show we're running
+	
+	pid = "%d"%(os.getpid())
+	print "writing lock file with pid=%s"%(pid)
+	f=open("wsgi_pid.lock", "w")
+	f.write(pid)
+	f.close()
+	
+	#Make server
+	
+	httpd = make_server('',8000,RequestHandler.handleNewRequest)
+	print "Serving on port 8000"
 
-#SERVE!!!
-httpd.serve_forever(5) 	#poll_interval as arg
+	#Create and set the shutdown thread for the wsgi server
+	RequestHandler.initializeStatics( httpd, threading.Thread(target=RequestHandler.shutdown) )
+	
+
+	#SERVE!!!
+	print "Serving forever!"
+	httpd.serve_forever(5) 	#poll_interval as arg
+	print "Bye!"
+except Exception, e:
+	print "An exception occured while trying to launch wsgi: %s",e
+finally:
+	f=open("wsgi_pid.lock", "w")	
+	f.write("0")
+	f.close()

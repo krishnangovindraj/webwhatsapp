@@ -3,6 +3,16 @@ body{
 	padding:5px;
 	
 }
+
+
+.inboxconvo{
+	background:#afa;
+	margin:2px;
+}
+.inboxconvo.hasunread{
+	border:3px solid yellow;
+}
+
 .chat {
 	width:90%;
 	margin-top:5px;
@@ -14,10 +24,29 @@ body{
 	background: #99f;
 	
 }
-.sent{
+
+.unread{
+	border:2px solid yellow;
+}
+
+
+.outgoing{
 	float:right;
 	border:2px #d33;
 	background: #f99;
+}
+
+.pending{
+	background: grey;
+}
+
+.sending{
+	border-left:10px solid grey ;
+}
+
+.delivered{
+	/*Normal*/
+	border-left:10px solid #4f4;
 }
 
 .timestamp{
