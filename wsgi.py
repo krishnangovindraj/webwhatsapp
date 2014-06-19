@@ -2,7 +2,10 @@ from wsgiref.simple_server import make_server
 from RequestHandler import RequestHandler
 from beaker.middleware import SessionMiddleware
 from Config import Config
-import threading,os
+from PidLock import PidLock
+import threading
+
+
 
 try:
 	#requestHandler = RequestHandler()
@@ -16,29 +19,25 @@ try:
 
 	
 	#Make a file to show we're running
-	
-	pid = "%d"%(os.getpid())
-	print "writing lock file with pid=%s"%(pid)
-	f=open("wsgi_pid.lock", "w")
-	f.write(pid)
-	f.close()
-	
-	#Make server
-	
-	httpd = make_server('',8000,RequestHandler.handleNewRequest)
-	print "Serving on port 8000"
+	with PidLock() as lockFile:
+		#Make server
+		
+		httpd = make_server('',8000,RequestHandler.handleNewRequest)
+		print "Serving on port 8000"
 
-	#Create and set the shutdown thread for the wsgi server
-	RequestHandler.initializeStatics( httpd, threading.Thread(target=RequestHandler.shutdown) )
-	
+		#Create and set the shutdown thread for the wsgi server
+		RequestHandler.initializeStatics( httpd, threading.Thread(target=RequestHandler.shutdown) )
+		
 
-	#SERVE!!!
-	print "Serving forever!"
-	httpd.serve_forever(5) 	#poll_interval as arg
+		#SERVE!!!
+		print "Serving forever!"
+		httpd.serve_forever(5) 	#poll_interval as arg
+		
 	print "Bye!"
 except Exception, e:
-	print "An exception occured while trying to launch wsgi: %s",e
+	print "An exception occured while trying to launch wsgi:",e
 finally:
 	f=open("wsgi_pid.lock", "w")	
 	f.write("0")
 	f.close()
+	
