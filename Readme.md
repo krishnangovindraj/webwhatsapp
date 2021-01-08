@@ -1,3 +1,6 @@
+## This code is 6 years outdated and will definitely not work. 
+(Not that it worked all that great back then either :( )
+
 README:
 Aim: Make a web client for whatsapp. Do whatever you want as long as that's achieved. And rewrite this readme when you're done
 
